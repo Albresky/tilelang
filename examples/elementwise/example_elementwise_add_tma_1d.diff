@@ -1,0 +1,36 @@
+diff --git a/examples/elementwise/example_elementwise_add_tma_1d.py b/examples/elementwise/example_elementwise_add_tma_1d.py
+index 0467eba..4b4296f 100644
+--- a/examples/elementwise/example_elementwise_add_tma_1d.py
++++ b/examples/elementwise/example_elementwise_add_tma_1d.py
+@@ -42,6 +42,31 @@ def main():
+ 
+     # Default config
+     config = {"block_M": 128, "block_N": 128, "threads": 128}
++
++    ###############################################
++    ######### Patch for RTX 4090 device ###########
++    ###(other devices may need different config)###
++    ###############################################
++
++    # Error: RuntimeError: Initialization failed: Failed to set the allowed dynamic shared memory size
++    # to 131072 with error: invalid argument.
++    #
++    # Default config - reduced block size to fit within shared memory limits.
++    """
++    python -c "import torch; props = torch.cuda.get_device_properties(0); \
++                print(f'Device: {torch.cuda.get_device_name(0)}'); \
++                print(f'Max shared memory per block (static): {props.shared_memory_per_block} bytes'); \
++                print(f'Max shared memory per multiprocessor: {props.shared_memory_per_multiprocessor} bytes'); \
++                print(f'Compute capability: {props.major}.{props.minor}')"
++    """
++    # RTX 4090 has max 49,152 bytes shared memory per block by default.
++    # Each block needs 2 * block_M * block_N * sizeof(fp32) bytes = 131,072 bytes.
++    # 64x64 = 2 * 64 * 64 * sizeof(fp32) = 32768 < 49152 bytes.
++    if "NVIDIA GeForce RTX 4090" == torch.cuda.get_device_name(0):
++        print("Applying patch for RTX 4090: using block_M=64, block_N=64, threads=128")
++        config = {"block_M": 64, "block_N": 64, "threads": 128}
++    ############# END OF PATCH #############
++
+     kernel = elementwise_add(M, N, **config, in_dtype="float32", out_dtype="float32")
+ 
+     out = kernel(a, b)
