@@ -80,6 +80,12 @@ pip uninstall torch -y && pip install torch --extra-index-url https://download.p
 - `-e`: editable mode，代码修改后无需重新安装
 - `-v`: 显示详细构建日志
 
+**clangd 配置**
+
+```bash
+ln -fs build/compile_commands.json compile_commands.json
+```
+
 ### 2. 验证安装
 
 ```bash
